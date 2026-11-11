@@ -4,4 +4,4 @@
 
 **Tests:** `luajit tests/run.lua` from the repository root (LuaJIT at `ProjectObsidian/ObsidianLauncher/target/luajit/luajit.exe`).
 
-**How it works:** `src/capes.lua` hides every `cape_unit` in the customization component's slave states once a frame, and wraps `Unit.set_unit_visibility` so a known cape can't be shown while the mod is on. The mod loads after Photo Mode (`load.after` in `obsidian.json`). Client scope: visual only, on this machine.
+**How it works:** `src/capes.lua` hides each new `cape_unit` in the customization component's slave states on the frame it appears, re-hides all of them every `FULL` (30) frames, and wraps `Unit.set_unit_visibility` so a known cape can't be shown while the mod is on. The mod loads after Photo Mode (`load.after` in `obsidian.json`). Client scope: visual only, on this machine.

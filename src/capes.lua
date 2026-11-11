@@ -5,7 +5,8 @@
 -- Helldiver does (the state's visible, after a hellpod), and other mods show it with
 -- Unit.set_unit_visibility too (Photo Mode's Cape toggle). So capes are hidden once a frame, after the
 -- game's update, and the wrapper on Unit.set_unit_visibility (visibility below) turns a request to show
--- a known cape into one to hide it, so nothing brings one back in between.
+-- a known cape into one to hide it, so nothing brings one back in between. A hidden cape is left alone
+-- until the next full pass (M.FULL), so most frames make no engine call at all.
 --
 -- env: slaves() -> unit -> context map of the customization component, unit() -> the Unit table,
 -- hidden(unit) -> whether another mod has the whole Helldiver hidden (api.world.hidden), optional.
@@ -13,6 +14,12 @@ local M = { on = true }
 
 -- Cape units seen by a pass -> the Helldiver wearing it. Weak, so capes the game destroys drop out.
 M.capes = setmetatable({}, { __mode = "k" })
+-- Capes hidden since the last full pass. A cape in here costs a table lookup a frame and no engine call:
+-- the wrapper keeps it hidden. Cleared every FULL frames, so a cape shown some other way (mesh by mesh,
+-- which the wrapper doesn't see) is hidden again within that time.
+M.done = setmetatable({}, { __mode = "k" })
+M.FULL = 30
+M.count = 0
 
 local function cape_of(ctx)
 	local state = type(ctx) == "table" and ctx.state
@@ -25,17 +32,26 @@ local function alive(U, unit)
 	return ok and yes == true
 end
 
--- Once a frame: every cape the game holds is hidden while the mod is on. Unconditional, since a cape can
--- also come back mesh by mesh, which the wrapper doesn't see.
+-- Once a frame: a cape not hidden yet is hidden at once, before the frame is drawn, so a new one (an
+-- Armory pick, a respawn) never shows. Every FULL frames every cape is hidden again.
 function M.frame(env)
 	if not M.on then return end
-	local U = env.unit()
-	if not U then return end
+	M.count = M.count + 1
+	if M.count >= M.FULL then
+		M.count = 0
+		M.done = setmetatable({}, { __mode = "k" })
+	end
+	local U
 	for unit, ctx in pairs(env.slaves()) do
 		local cape = cape_of(ctx)
-		if cape and alive(U, cape) then
-			M.capes[cape] = unit
-			pcall(U.set_unit_visibility, cape, false)
+		if cape and not M.done[cape] then
+			U = U or env.unit()
+			if not U then return end
+			if alive(U, cape) then
+				M.capes[cape] = unit
+				pcall(U.set_unit_visibility, cape, false)
+				M.done[cape] = true
+			end
 		end
 	end
 end
@@ -52,6 +68,7 @@ function M.set(on, env)
 	on = on ~= false
 	if on == M.on then return end
 	M.on = on
+	M.done = setmetatable({}, { __mode = "k" })
 	if on then return M.frame(env) end
 	local U = env.unit()
 	if not U then return end

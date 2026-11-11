@@ -116,6 +116,44 @@ test("no game state, no error", function()
 	capes.set(false, { slaves = function() return {} end, unit = function() return nil end })
 end)
 
+test("hidden capes cost no engine call until the next full pass", function()
+	local capes = load_capes()
+	local env, units, U = world({ {}, {}, {} })
+	local calls = 0
+	local alive, set = U.alive, U.set_unit_visibility
+	U.alive = function(...) calls = calls + 1 return alive(...) end
+	U.set_unit_visibility = function(...) calls = calls + 1 return set(...) end
+	capes.frame(env)
+	eq(calls, 6, "first frame")
+	calls = 0
+	for _ = 2, capes.FULL - 1 do capes.frame(env) end
+	eq(calls, 0, "frames in between")
+	capes.frame(env)
+	eq(calls, 6, "full pass")
+end)
+
+test("a cape shown past the wrapper is hidden by the next full pass", function()
+	local capes = load_capes()
+	local env, units = world({ {} })
+	capes.frame(env)
+	local cape = units[1].state.cape_unit
+	cape.shown = true -- mesh by mesh, which the wrapper doesn't see
+	for _ = 2, capes.FULL do capes.frame(env) end
+	eq(cape.shown, false, "after a full pass")
+end)
+
+test("a new cape is hidden on the first frame, between full passes", function()
+	local capes = load_capes()
+	local env, units = world({ {} })
+	capes.frame(env)
+	capes.frame(env)
+	local new = { alive = true, shown = true }
+	units[1].state.cape_unit.alive = false
+	units[1].state.cape_unit = new
+	capes.frame(env)
+	eq(new.shown, false, "new cape")
+end)
+
 test("a dead cape is skipped", function()
 	local capes = load_capes()
 	local env, units = world({ {} })
