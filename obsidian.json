@@ -1,0 +1,32 @@
+{
+  "obsidian": 1,
+  "id": "alomare.nocapes",
+  "version": "1.0.0",
+  "name": {
+    "en": "No Capes"
+  },
+  "description": {
+    "en": "Hides the cape of every Helldiver: the player, other players and bots, on the ship and in missions. Capes stay hidden when other mods, such as Photo Mode, try to show them. Switches on and off in the pause menu, under Mods. Other players still see capes."
+  },
+  "authors": [
+    "Alomare"
+  ],
+  "scope": "client",
+  "entry": "main.lua",
+  "source": "https://github.com/Alomare/HD1-NoCapes",
+  "modules": [
+    "src/capes.lua"
+  ],
+  "requires": [
+    "obsidian.api"
+  ],
+  "load": {
+    "after": ["alomare.photomode"]
+  },
+  "loader_api": 1,
+  "options": [
+    { "id": "hide_capes", "type": "toggle", "default": true,
+      "label": { "en": "Hide capes" },
+      "description": { "en": "Hides every Helldiver cape on this machine: the player, other players and bots. Also in the pause menu, under Mods." } }
+  ]
+}
